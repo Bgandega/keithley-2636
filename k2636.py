@@ -1,15 +1,16 @@
+
 """
 Module for interacting with the Keithley 2636B SMU.
 
 Author:  Ross <peregrine dot warren at physics dot ox dot ac dot uk>
 """
 
-import visa
+import pyvisa
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.style as style
 import time
-from serial import SerialException
+#from serial import SerialException
 
 
 class K2636():
@@ -18,7 +19,7 @@ class K2636():
     def __init__(self, address='ASRL/dev/ttyUSB0', read_term='\n',
                  baudrate=57600):
         """Make instrument connection instantly on calling class."""
-        rm = visa.ResourceManager('@py')  # use py-visa backend
+        rm = pyvisa.ResourceManager('@py')  # use py-visa backend
         self.makeConnection(rm, address, read_term, baudrate)
 
     def makeConnection(self, rm, address, read_term, baudrate):
@@ -33,10 +34,12 @@ class K2636():
             if 'GPIB' in str(address):
                 # Connection via GPIB
                 print('No GPIB support. Please use serial')
+        except :
+            print("Erreur SerialException")
 
-        except SerialException:
-            print("CONNECTION ERROR: Check instrument address.")
-            raise ConnectionError
+#        except SerialException:
+#            print("CONNECTION ERROR: Check instrument address.")
+#            raise ConnectionError
 
     def closeConnection(self):
         """Close connection to keithley."""
@@ -67,8 +70,8 @@ class K2636():
         try:
             r = self.inst.query(s)
             return r
-        except SerialException:
-            return ('Serial port busy, try again.')
+#        except SerialException:
+#            return ('Serial port busy, try again.')
         except FileNotFoundError:
             return ('CONNECTION ERROR: No connection established.')
         except AttributeError:
@@ -115,9 +118,11 @@ class K2636():
                                'Gate Leakage [A]': ig})
             return df
 
-        except SerialException:
-            print('Cannot read buffer.')
-            return
+#        except SerialException:
+#            print('Cannot read buffer.')
+#            return
+        except :
+            print("Erreur SerialException -> cannot read buffer")
 
     def readBufferIV(self):
         """Read specified buffer in keithley memory and return an array."""
