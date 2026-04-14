@@ -134,8 +134,8 @@ class mainWindow(QMainWindow):
             """Find screen size and place in centre."""
             screen = QDesktopWidget().screenGeometry()
             size = self.geometry()
-            self.move((screen.width()-size.width())/2,
-                      (screen.height()-size.height())/2)
+            self.move(int((screen.width()-size.width())/2),
+                      int((screen.height()-size.height())/2))
 
     def showFileOpen(self):
             """Pop up for file selection."""
@@ -488,8 +488,8 @@ class keithleySettingsWindow(QWidget):
             """Find screen size and place in centre."""
             screen = QDesktopWidget().screenGeometry()
             size = self.geometry()
-            self.move((screen.width()-size.width())/2,
-                      (screen.height()-size.height())/2)
+            self.move(int((screen.width()-size.width())/2),
+                      int((screen.height()-size.height())/2))
 
         def setIVparams(self):
             """Store IV sweep settings in .tsp file."""
@@ -527,8 +527,8 @@ class keithleyConnectionWindow(QWidget):
             """Find screen size and place in centre."""
             screen = QDesktopWidget().screenGeometry()
             size = self.geometry()
-            self.move((screen.width()-size.width()) / 2,
-                      (screen.height()-size.height()) / 2)
+            self.move(int((screen.width()-size.width()) / 2),
+                      int((screen.height()-size.height()) / 2))
 
         def reconnect2keithley(self):
             """Reconnect to instrument."""
@@ -573,8 +573,8 @@ class keithleyErrorWindow(QWidget):
             """Find screen size and place in centre."""
             screen = QDesktopWidget().screenGeometry()
             size = self.geometry()
-            self.move((screen.width()-size.width()) / 2,
-                      (screen.height()-size.height()) / 2)
+            self.move(int((screen.width()-size.width()) / 2),
+                      int((screen.height()-size.height()) / 2))
 
         def readError(self):
             """Reconnect to instrument."""
@@ -619,8 +619,8 @@ class warningWindow(QWidget):
             """Find screen size and place in centre."""
             screen = QDesktopWidget().screenGeometry()
             size = self.geometry()
-            self.move((screen.width()-size.width()) / 2,
-                      (screen.height()-size.height()) / 2)
+            self.move(int((screen.width()-size.width()) / 2),
+                      int((screen.height()-size.height()) / 2))
 
         def showWindow(self, s):
             """Write error message and show window."""
