@@ -16,7 +16,7 @@ import time
 class K2636():
     """Class for Keithley control."""
 
-    def __init__(self, address='ASRL/dev/ttyUSB0', read_term='\n',
+    def __init__(self, address='ASRL/dev/bus/usb/001/006', read_term='\n',
                  baudrate=57600):
         """Make instrument connection instantly on calling class."""
         rm = pyvisa.ResourceManager('@py')  # use py-visa backend
@@ -24,22 +24,27 @@ class K2636():
 
     def makeConnection(self, rm, address, read_term, baudrate):
         """Make initial connection to instrument."""
-        try:
-            if 'ttyS' or 'ttyUSB' in str(address):
-                # Connection via SERIAL
-                self.inst = rm.open_resource(address)
-                self.inst.read_termination = str(read_term)
-                self.inst.baud_rate = baudrate
+        if "TCP" in str(address):
+            self.inst = rm.open_resource(address)
+            self.inst.read_termination  = "\n"
+            self.inst.write_termination = ""
+        else:
+            try:
+                if 'ttyS' or 'ttyUSB' in str(address):
+                    # Connection via SERIAL
+                    self.inst = rm.open_resource(address)
+                    self.inst.read_termination = str(read_term)
+                    self.inst.baud_rate = baudrate
 
-            if 'GPIB' in str(address):
-                # Connection via GPIB
-                print('No GPIB support. Please use serial')
-        except :
-            print("Erreur SerialException")
+                if 'GPIB' in str(address):
+                    # Connection via GPIB
+                    print('No GPIB support. Please use serial')
+            except :
+                print("Erreur SerialException")
 
-#        except SerialException:
-#            print("CONNECTION ERROR: Check instrument address.")
-#            raise ConnectionError
+    #        except SerialException:
+    #            print("CONNECTION ERROR: Check instrument address.")
+    #            raise ConnectionError
 
     def closeConnection(self):
         """Close connection to keithley."""
@@ -195,6 +200,7 @@ class K2636():
             begin_time = time.time()
             self.loadTSP('iv-sweep.tsp')
             self.runTSP()
+            self.sleep(10)
             df = self.readBufferIV()
             output_name = str(sample + '-iv-sweep.csv')
             df.to_csv(output_name, sep='\t', index=False)
@@ -273,7 +279,7 @@ class K2636():
 
 if __name__ == '__main__':
     """For testing methods in the K2636 class."""
-    keithley = K2636(address='ASRL/dev/ttyUSB0', read_term='\n', baudrate=57600)
+    keithley = K2636(address="TCPIP::169.254.33.131::INSTR")
     sample = 'blank-20-1'
     keithley.IVsweep(sample)
     # keithley.Output(sample)
