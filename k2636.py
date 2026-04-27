@@ -7,8 +7,8 @@ Author:  Ross <peregrine dot warren at physics dot ox dot ac dot uk>
 
 import pyvisa
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.style as style
+#import matplotlib.pyplot as plt
+#import matplotlib.style as style
 import time
 #from serial import SerialException
 
