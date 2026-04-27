@@ -12,9 +12,9 @@ It is advised to run the code in a python environnement, a require file is provi
 
 >python3 -m venv env #open an python environnement
 >source env/bin/activate #start the environnement
->pip install -f requirements.txt #find the requirements file first
->python3 K2636.py # you can then run the code
+>pip install -r keithley-2636/requirements.txt #find the requirements file first
 
+The script K2636.py should work in this environnement. Other script wont work yet.
 
 # Things to note
 - The Keithley 2636 uses 'TSP' rather than 'SCPI' which the Keithley 2400 understood.
