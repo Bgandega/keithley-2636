@@ -1,42 +1,20 @@
-# Transistor-tools-K2636
-A driver for controlling a keithley 2636.
+# Transistor-tools-K2636A
+A driver for controlling a keithley 2636A connected to a keithley 2636 using TSP-LINK.
 The K2636.py program in this folder loads a set of .tsp instructions into the memory of the Keithley. It then tells the keithley to execute the instructions before closing the connection with the instrument.
-
-# User interface
-To start the user interface run the following command:
-
->python ofetMeasure.py
-
-# Example python script:
-You can take the driver to script your own programs:
-
->keithley = K2636(address='ASRL/dev/ttyUSB0', read_term='\n', baudrate=57600)
-
->sample = 'ofet1'
-
->keithley.IVsweep(sample)
-
->keithley.Output(sample)
-
->keithley.Transfer(sample)
-
->keithley.DisplayMeasurement(sample)
-
->keithley.closeConnection()
-
 
 # Requirements:
 It is written is python3. You will need to download the following modules too:
-- visa
-- serial
+- pyvisa
 - matplotlib
 - pandas
-- for remote control:
-	export XKB_DEFAULT_RULES=base
-	export QT_XKB_CONFIG_ROOT=/usr/share/X11/xkb
 
-# How to hook up the keithley 2636 for three terminal OFET measurements:
-![Alt text](.K2636_connections.png?raw=true "Setup")
+It is advised to run the code in a python environnement, a require file is provided.
+
+>python -m env #open an python environnement
+>source env/bin/activate #start the environnement
+>pip install -f requirements.txt #find the requirements file first
+>python3 K2636.py # you can then run the code
+
 
 # Things to note
 - The Keithley 2636 uses 'TSP' rather than 'SCPI' which the Keithley 2400 understood.
