@@ -10,7 +10,7 @@ It is written is python3. You will need to download the following modules too:
 
 It is advised to run the code in a python environnement, a require file is provided.
 
->python -m env #open an python environnement
+>python3 -m venv env #open an python environnement
 >source env/bin/activate #start the environnement
 >pip install -f requirements.txt #find the requirements file first
 >python3 K2636.py # you can then run the code
