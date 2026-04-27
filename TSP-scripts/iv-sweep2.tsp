@@ -8,7 +8,7 @@
 -------- PARAMETERS --------
 Vstart = -5
 Vend = 5
-Vstep = 0.005
+Vstep = 0.5
 
 
 -------- MAIN PROGRAM --------
@@ -51,17 +51,12 @@ smua.source.output = smua.OUTPUT_ON
 smua.source.levelv = V
 delay(1)
 
+SweepVLinMeasureI(smua,Vstart,Vend,1E-4,10)
+print("SMUA: sweep measurment done")
 
-while V <= Vend do
-        smua.source.levelv = V
-        smua.source.output = smua.OUTPUT_ON
-        delay(1E-4)
-        smua.measure.i(smua.nvbuffer1)
-        V = V + Vstep
-        smua.source.output = smua.OUTPUT_OFF
-end
 
-print("measurement done")
+-- forwards scan direction
+
 
 waitcomplete()
 -------- END --------

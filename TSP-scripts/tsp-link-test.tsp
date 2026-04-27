@@ -8,7 +8,7 @@
 -------- PARAMETERS --------
 Vstart = -5
 Vend = 5
-Vstep = 0.005
+Vstep = 0.5
 
 
 -------- MAIN PROGRAM --------
@@ -16,17 +16,21 @@ reset()
 display.clear()
 
 -- Beep in excitement
-beeper.beep(1, 600)
+-- beeper.beep(1, 600)
 
 -- Clear buffers
 smua.nvbuffer1.clear()
 smub.nvbuffer1.clear()
 -- Prepare buffers
+
 smua.nvbuffer1.collectsourcevalues = 1
 smub.nvbuffer1.collectsourcevalues = 1
+
 format.data = format.ASCII
+
 smua.nvbuffer1.appendmode = 1
 smub.nvbuffer1.appendmode = 1
+
 smua.measure.count = 1
 smub.measure.count = 1
 
@@ -51,17 +55,28 @@ smua.source.output = smua.OUTPUT_ON
 smua.source.levelv = V
 delay(1)
 
+N = 2
 
-while V <= Vend do
-        smua.source.levelv = V
-        smua.source.output = smua.OUTPUT_ON
-        delay(1E-4)
-        smua.measure.i(smua.nvbuffer1)
-        V = V + Vstep
-        smua.source.output = smua.OUTPUT_OFF
-end
 
-print("measurement done")
+nodesFound = tsplink.reset()
+node[1].tsplink.group = 0
+node[N].tsplink.group = 1
 
-waitcomplete()
+print("Nodes found = "..nodesFound)
+state = tsplink.state
+print("state = "..state)
+print("master node :"..tsplink.master)
+
+waitcomplete(0)
+node[N].execute("setpoint = 2.5")
+waitcomplete(0)
+node[N].execute("waitcomplete()")
+waitcomplete(0)
+node[N].execute("beeper.beep(2,621)")
+waitcomplete(0)
+
+-- forwards scan direction
+
+
+--waitcomplete()
 -------- END --------

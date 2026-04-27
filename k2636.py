@@ -12,11 +12,17 @@ import matplotlib.style as style
 import time
 #from serial import SerialException
 
+MAX_TIME_OUT = 200000
+NORMAL_TIME_OUT = 2000
+SANITY_WAIT = 1.5 # secondes
+print(f"max timeout : {MAX_TIME_OUT}")
+print(f"normal timeout : {NORMAL_TIME_OUT}")
+
 
 class K2636():
     """Class for Keithley control."""
 
-    def __init__(self, address='ASRL/dev/bus/usb/001/006', read_term='\n',
+    def __init__(self, address='TCPIP::169.254.33.131::INSTR', read_term='\n',
                  baudrate=57600):
         """Make instrument connection instantly on calling class."""
         rm = pyvisa.ResourceManager('@py')  # use py-visa backend
@@ -62,6 +68,7 @@ class K2636():
         try:
             assert type(m) == str
             self.inst.write(m)
+            if not("\n" in m):print(m)
         except AttributeError:
             print('CONNECTION ERROR: No connection established.')
 
@@ -83,206 +90,134 @@ class K2636():
             print('CONNECTION ERROR: No connection established.')
             return ('CONNECTION ERROR: No connection established.')
 
-    def loadTSP(self, tsp):
+    def loadTSP(self, tsp, script_name = "",smuNode = 1):
         """Load an anonymous TSP script into the K2636 nonvolatile memory."""
+        print(f"Uploading to the Node [{smuNode}]")
+
         try:
             tsp_dir = 'TSP-scripts/'  # Put all tsp scripts in this folder
-            self._write('loadscript')
+            # load and name the script if it has a name
+            if len(script_name) : self._write(f'loadscript {script_name}')
+            else:self._write('loadscript')
+            
             line_count = 1
             for line in open(str(tsp_dir + tsp), mode='r'):
                 self._write(line)
                 line_count += 1
             self._write('endscript')
+
+            if smuNode != 1: # Code to be uploaded to another than the default one
+                time.sleep(SANITY_WAIT)
+                self._write(f"node[{smuNode}].dataqueue.add({script_name}.source)")
+                self._write(f"node[{smuNode}].execute(\"\{script_name}\".. \"=script.new(dataqueue.next(),[[\"..\"{script_name}\".. \"]])\")")
+                time.sleep(SANITY_WAIT)
+                #self._write(f"script.delete(\"{script_name}\")") #remove the code from the main node
+                time.sleep(SANITY_WAIT)
+                
             print('----------------------------------------')
-            print('Uploaded TSP script: ', tsp)
+            print(f'Uploaded TSP script to node {smuNode}: {tsp}')
 
         except FileNotFoundError:
             print('ERROR: Could not find tsp script. Check path.')
             raise SystemExit
 
-    def runTSP(self):
+    def runTSP(self,script_name = ""):
         """Run the anonymous TSP script currently loaded in the K2636 memory."""
-        self._write('script.anonymous.run()')
+        if len(script_name)>0: self._write(f"{script_name}()")
+        else: self._write('script.anonymous.run()')
         print('Measurement in progress...')
 
-    def readBuffer(self):
+    def runFunction(self,nameFunction,parameters = ""):
+        self.inst.write(f"waitcomplete(0)")
+        self.inst.write(f"{nameFunction}({parameters})")
+        self.inst.timeout = MAX_TIME_OUT
+        conditionTest = True
+        while conditionTest:
+            text = self.inst.read()
+            print(f"keithley : {text}")
+            conditionTest = (text != f"DONE {nameFunction}") 
+
+    def readBuffer(self, smuNode = 2):
         """Read buffer in memory and return an array."""
-        try:
-            vg = [float(x) for x in self._query('printbuffer' +
-                  '(1, smub.nvbuffer1.n, smub.nvbuffer1.sourcevalues)').split(',')]
-            ig = [float(x) for x in self._query('printbuffer' +
-                  '(1, smub.nvbuffer1.n, smub.nvbuffer1.readings)').split(',')]
-            vd = [float(x) for x in self._query('printbuffer' +
-                  '(1, smua.nvbuffer1.n, smua.nvbuffer1.sourcevalues)').split(',')]
-            c = [float(x) for x in self._query('printbuffer' +
-                 '(1, smua.nvbuffer1.n, smua.nvbuffer1.readings)').split(',')]
+        print(f"Reading values from the node {smuNode}")
+        # Extracted from the docs, the content of a buffer type object : 
+        # buffer = {timestamps measurefunctions readings sourcevalues...}
+        # range and units are retrievable as well as the timestamps
 
-            df = pd.DataFrame({'Gate Voltage [V]': vg,
-                               'Channel Voltage [V]': vd,
-                               'Channel Current [A]': c,
-                               'Gate Leakage [A]': ig})
-            return df
-
-#        except SerialException:
-#            print('Cannot read buffer.')
-#            return
-        except :
-            print("Erreur SerialException -> cannot read buffer")
-
-    def readBufferIV(self):
-        """Read specified buffer in keithley memory and return an array."""
-        vd = [float(x) for x in self._query('printbuffer' +
+        
+        
+        src1a = [float(x) for x in self._query('printbuffer' +
               '(1, smua.nvbuffer1.n, smua.nvbuffer1.sourcevalues)').split(',')]
-        c = [float(x) for x in self._query('printbuffer' +
+        i1a = [float(x) for x in self._query('printbuffer' +
              '(1, smua.nvbuffer1.n, smua.nvbuffer1.readings)').split(',')]
-        df = pd.DataFrame({'Channel Voltage [V]': vd, 'Channel Current [A]': c})
-        return df
+        src1b = [float(x) for x in self._query('printbuffer' +
+              '(1, smub.nvbuffer1.n, smub.nvbuffer1.sourcevalues)').split(',')]
+        i1b = [float(x) for x in self._query('printbuffer' +
+              '(1, smub.nvbuffer1.n, smub.nvbuffer1.readings)').split(',')]
+
     
-    def readBufferInverter(self):
-        """Read specified buffer for inverter measurement."""
-        SMUAsrc = [float(x) for x in self._query('printbuffer' +
-              '(1, smua.nvbuffer1.n, smua.nvbuffer1.sourcevalues)').split(',')]
-        SMUAread = [float(x) for x in self._query('printbuffer' +
-             '(1, smua.nvbuffer1.n, smua.nvbuffer1.readings)').split(',')]
-        SMUBsrc = [float(x) for x in self._query('printbuffer' +
-             '(1, smub.nvbuffer1.n, smub.nvbuffer1.sourcevalues)').split(',')]
-        SMUBread = [float(x) for x in self._query('printbuffer' +
-             '(1, smub.nvbuffer1.n, smub.nvbuffer1.readings)').split(',')]        
-        df = pd.DataFrame({'Voltage In [V]': SMUAread, 'Voltage Out [V]': SMUBread, 'SMUA source': SMUAsrc, 'SMUB source': SMUBsrc})
-        return df    
+        time.sleep(SANITY_WAIT)
+        
+        self._write(f"node[{smuNode}].execute(\"bfremoteA = smua.nvbuffer1\")")
+        time.sleep(SANITY_WAIT)
 
-    def DisplayMeasurement(self, sample):
-        """Show graphs of measurements."""
-        try:
-            style.use('ggplot')
-            fig, ([ax1, ax2], [ax3, ax4]) = plt.subplots(2, 2, figsize=(20, 10),
-                                                         dpi=80, facecolor='w',
-                                                         edgecolor='k')
+        self._write(f"bfremoteA = node[{smuNode}].getglobal(\"bfremoteA\")")
+        time.sleep(SANITY_WAIT)
+        src2a = [float(x) for x in self._query('printbuffer' +
+              '(1, bfremoteA.n, bfremoteA.sourcevalues)').split(',')]
+        i2a = [float(x) for x in self._query('printbuffer' +
+             '(1, bfremoteA.n, bfremoteA.readings)').split(',')]
+        self._write(f"bfremoteA = nil")
 
-            df1 = pd.read_csv(str(sample+'-iv-sweep.csv'), '\t')
-            ax1.plot(df1['Channel Voltage [V]'],
-                     df1['Channel Current [A]'], '.')
-            ax1.set_title('I-V sweep')
-            ax1.set_xlabel('Channel Voltage [V]')
-            ax1.set_ylabel('Channel Current [A]')
+        time.sleep(SANITY_WAIT)
+        self._write(f"node[{smuNode}].execute(\"bfremoteB = smub.nvbuffer1\")")
+        time.sleep(SANITY_WAIT)
+        self._write(f"bfremoteB = node[{smuNode}].getglobal(\"bfremoteB\")")
+        time.sleep(SANITY_WAIT)
+        src2b = [float(x) for x in self._query('printbuffer' +
+              '(1, bfremoteB.n, bfremoteB.sourcevalues)').split(',')]
+        i2b = [float(x) for x in self._query('printbuffer' +
+              '(1, bfremoteB.n, bfremoteB.readings)').split(',')]
 
-            df2 = pd.read_csv(str(sample+'-output.csv'), '\t')
-            ax2.plot(df2['Channel Voltage [V]'],
-                     df2['Channel Current [A]'], '.')
-            ax2.set_title('Output curves')
-            ax2.set_xlabel('Channel Voltage [V]')
-            ax2.set_ylabel('Channel Current [A]')
+        self._write(f"bfremoteB = nil")
 
-            df3 = pd.read_csv(str(sample+'-transfer.csv'), '\t')
-            ax3.plot(df3['Gate Voltage [V]'],
-                     df3['Channel Current [A]'], '.')
-            ax3.set_title('Transfer Curves')
-            ax3.set_xlabel('Gate Voltage [V]')
-            ax3.set_ylabel('Channel Current [A]')
+        df = pd.DataFrame({'SMU1 src A [V]': src1a,
+                           'SMU1 src B [V]': src1b,
+                           'SMU1 current A [A]': i1a,
+                           'SMU1 current B [A]': i1b,
+                           'SMU2 src A [V]': src2a,
+                           'SMU2 src B [V]': src2b,
+                           'SMU2 current A [A]': i2a,
+                           'SMU2 current B [A]': i2b
 
-            df4 = pd.read_csv(str(sample+'-transfer.csv'), '\t')
-            ax4.plot(df4['Gate Voltage [V]'],
-                     df4['Gate Leakage [A]'], '.')
-            ax4.set_title('Gate leakage current')
-            ax4.set_xlabel('Gate Voltage [V]')
-            ax4.set_ylabel('Gate Leakage [A]')
 
-            fig.tight_layout()
-            fig.savefig(sample)
-            plt.show()
+                           })
+        return df
 
-        except(FileNotFoundError):
-            print('Sample name not found.')
-
-    def IVsweep(self, sample):
-        """K2636 IV sweep."""
-        try:
-            begin_time = time.time()
-            self.loadTSP('iv-sweep.tsp')
-            self.runTSP()
-            self.sleep(10)
-            df = self.readBufferIV()
-            output_name = str(sample + '-iv-sweep.csv')
-            df.to_csv(output_name, sep='\t', index=False)
-            finish_time = time.time()
-            print('IV sweep complete. Elapsed time %.2f mins.'
-                  % ((finish_time - begin_time)/60))
-
-        except(AttributeError):
-            print('Cannot perform IV sweep: no keithley connected.')
-
-    def Output(self, sample):
+    
+    def SaveAcquisition(self, sample):
         """K2636 Output sweeps."""
-        try:
-            begin_time = time.time()
-            self.loadTSP('output-charact.tsp')
-            self.runTSP()
-            df = self.readBuffer()
-            output_name = str(sample + '-output.csv')
-            df.to_csv(output_name, sep='\t', index=False)
-            finish_time = time.time()
-            print('Output sweeps complete. Elapsed time %.2f mins.'
-                  % ((finish_time - begin_time) / 60))
+        df = self.readBuffer()
+        output_name = str(sample + '-outputs.csv')
+        df.to_csv(output_name, sep='\t', index=False)
 
-        except(AttributeError):
-            print('Cannot perform output sweep: no keithley connected.')
-
-    def Transfer(self, sample):
-        """K2636 Transfer sweeps."""
-        try:
-            begin_time = time.time()
-            self.loadTSP('transfer-charact.tsp')
-            self.runTSP()
-            df = self.readBuffer()
-            output_name = str(sample + '-neg-pos-transfer.csv')
-            df.to_csv(output_name, sep='\t', index=False)
-
-            # transfer reverse scan
-            self.loadTSP('transfer-charact-2.tsp')
-            self.runTSP()
-            df = self.readBuffer()
-            output_name = str(sample + '-pos-neg-transfer.csv')
-            df.to_csv(output_name, sep='\t', index=False)
-
-            finish_time = time.time()
-            print('Transfer curves measured. Elapsed time %.2f mins.'
-                  % ((finish_time - begin_time) / 60))
-
-        except(AttributeError):
-            print('Cannot perform transfer sweep: no keithley connected.')
-
-    def Inverter(self, sample):
-        """K2636 inverter measurement."""
-        try:
-            begin_time = time.time()
-            self.loadTSP('inverter.tsp')
-            self.runTSP()
-            df = self.readBufferInverter()
-            output_name = str(sample + '-neg-pos-inverter.csv')
-            df.to_csv(output_name, sep='\t', index=False)
-            
-            # inverter reverse scan
-            self.loadTSP('inverter-reverse.tsp')
-            self.runTSP()
-            df = self.readBufferInverter()
-            output_name = str(sample + '-pos-neg-inverter.csv')
-            df.to_csv(output_name, sep='\t', index=False)            
-            
-            finish_time = time.time()
-            print('Inverter measurement complete. Elapsed time %.2f mins.'
-                  % ((finish_time - begin_time) / 60))
-
-        except(AttributeError):
-            print('Cannot perform output sweep: no keithley connected.')
 ########################################################################
-
 
 if __name__ == '__main__':
     """For testing methods in the K2636 class."""
     keithley = K2636(address="TCPIP::169.254.33.131::INSTR")
-    sample = 'blank-20-1'
-    keithley.IVsweep(sample)
-    # keithley.Output(sample)
-    # keithley.Transfer(sample)
-    # keithley.DisplayMeasurement(sample)
+    keithley.loadTSP("smu2.tsp","main2",smuNode = 2)
+    keithley.loadTSP("smu1.tsp","main1",smuNode = 1)
+    time.sleep(SANITY_WAIT)
+
+    keithley.inst.write("main1()")
+    time.sleep(SANITY_WAIT)
+    
+    print(keithley.inst.read())
+    #keithley.inst.write("node[2].execute(\"main2()\") waitcomplete(0) print(\"DONE\")")
+    keithley.inst.write("node[2].execute(main2.source) print(\"DONE\")")
+    print(keithley.inst.read())
+    
+    keithley.runFunction("superSweep","-2,2,0.1,0.1")
+    keithley.SaveAcquisition("test")
     keithley.closeConnection()
