@@ -49,7 +49,7 @@ display.screen = display.SMUA_SMUB
 
 -- Measurement routine
 
-smua.source.levelv = 0
+smua.source.levelv = 0.05
 smub.source.levelv = 0
 
 smua.source.output = smua.OUTPUT_ON
@@ -64,6 +64,7 @@ end
 beeper.beep(0.4, 600)
 delay(0.5)
 beeper.beep(0.4, 600)
+errorqueue.clear()
 
-waitcomplete()
+-- waitcomplete()
 -------- END --------

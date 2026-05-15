@@ -9,7 +9,7 @@ reset()
 display.clear()
 
 -- Beep in excitement
-beeper.beep(0.5, 600)
+-- beeper.beep(0.5, 600)
 
 -- Clear buffers
 smua.nvbuffer1.clear()
@@ -66,7 +66,7 @@ node[1].tsplink.group = 0
 node[2].tsplink.group = 1
 
 function superSweep(Vstart,Vend,Vstep,DELAY)
-
+	print("start sweep")
 	smua.source.output = smua.OUTPUT_OFF
 	smub.source.output = smub.OUTPUT_OFF
 	
@@ -95,7 +95,12 @@ function superSweep(Vstart,Vend,Vstep,DELAY)
 	        waitcomplete(0) -- wait for all measurement to be finished before changing the potential
 	        smua.source.output = smua.OUTPUT_OFF
 	end
+	errorqueue.clear()
+	print("test end")
 	print("DONE superSweep")
+	smua.source.levelv = 0
+	smua.source.output = smua.OUTPUT_OFF
+
 end
 
 print("DONE main1")
