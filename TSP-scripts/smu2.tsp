@@ -6,18 +6,37 @@
 reset()
 display.clear()
 
--- Clear buffers
-smua.nvbuffer1.clear()
-smub.nvbuffer1.clear()
+function MeasureAllCurrent()
+	-- measurement should be changed to time, temperature and real value potential
+	smua.measure.i(smua.nvbuffer1)
+	smub.measure.i(smub.nvbuffer1)
+	
+end
 
--- Prepare buffers
-smua.nvbuffer1.collectsourcevalues = 1
-smub.nvbuffer1.collectsourcevalues = 1
-format.data = format.ASCII
-smua.nvbuffer1.appendmode = 1
-smub.nvbuffer1.appendmode = 1
-smua.measure.count = 1
-smub.measure.count = 1
+
+function resetSmuBuffer()
+	-- function to prepare the buffer for the acquisition
+	smua.source.output = smua.OUTPUT_OFF
+	smub.source.output = smub.OUTPUT_OFF
+	
+	-- Clear buffers
+	smua.nvbuffer1.clear()
+	smub.nvbuffer1.clear()
+
+	-- Prepare buffers
+	smua.nvbuffer1.collectsourcevalues = 1
+	smub.nvbuffer1.collectsourcevalues = 1
+
+	format.data = format.ASCII
+	smua.nvbuffer1.appendmode = 1
+	smub.nvbuffer1.appendmode = 1
+	smua.measure.count = 1
+	smub.measure.count = 1
+	
+end
+
+-- first setup call
+resetSmuBuffer()
 
 -- Measurement Setup
 -- To adjust the delay factor.
@@ -49,22 +68,11 @@ display.screen = display.SMUA_SMUB
 
 -- Measurement routine
 
-smua.source.levelv = 0.05
+smua.source.levelv = 0
 smub.source.levelv = 0
 
 smua.source.output = smua.OUTPUT_ON
 smub.source.output = smub.OUTPUT_ON
 
-function MeasureAllCurrent()
-	smua.measure.i(smua.nvbuffer1)
-	smub.measure.i(smub.nvbuffer1)
-end
-
--- Beep in excitement
-beeper.beep(0.4, 600)
-delay(0.5)
-beeper.beep(0.4, 600)
-errorqueue.clear()
-
--- waitcomplete()
+waitcomplete()
 -------- END --------
