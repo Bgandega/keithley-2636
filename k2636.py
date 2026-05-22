@@ -137,9 +137,11 @@ class K2636():
             print(f"keithley : {text}")
             conditionTest = (text != f"DONE {nameFunction}") 
 
-    def readBuffer(self, smuNode = 2):
+    def readBuffer(self):
         """Read buffer in memory and return an array."""
         print(f"Reading values from the node {smuNode}")
+        # TODO: write self._query("*WDN?") to clear any left status and 
+        # not crash the communication with the SMU
         # Extracted from the docs, the content of a buffer type object : 
         # buffer = {timestamps measurefunctions readings sourcevalues...}
         # range and units are retrievable as well as the timestamps
@@ -200,6 +202,19 @@ class K2636():
         df = self.readBuffer()
         output_name = str(sample + '-outputs.csv')
         df.to_csv(output_name, sep='\t', index=False)
+
+    def loadListTension(self,listSmuA,listSmuB,listSmuAName = "list_SMUA",listSmuBName = "list_SMUB"):
+        # function to load any list in the device for sweeping by a TSP command
+        # Todo luanch a sweep using this list you must call the runFunction("doubleListSweep","list_SMUA,list_SMUB,DELAY")
+        # With DELAY being the time step that you want, default to 1E-4
+        
+        # TODO: Four channel super sweep
+        self._write(f"self._write(f"{listSmuAName} ,{listSmuBName} = \{\},\{\}")
+")
+        for i in range(len(listSmuA)):
+            self._write(f"{listSmuAName}[{i+1}],{listSmuBName}[{i+1}] = {listSmuA[i]},{listSmuB[i]}")
+        else :
+            self._write(f"{listSmuAName}[{i+1}],{listSmuBName}[{i+1}] = nil,nil") #end the list
 
 ########################################################################
 
