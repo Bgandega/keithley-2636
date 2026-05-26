@@ -7,6 +7,7 @@ Author:  Ross <peregrine dot warren at physics dot ox dot ac dot uk>
 
 import pyvisa
 import pandas as pd
+import numpy as np
 #import matplotlib.pyplot as plt
 #import matplotlib.style as style
 import time
@@ -139,15 +140,14 @@ class K2636():
 
     def readBuffer(self):
         """Read buffer in memory and return an array."""
-        print(f"Reading values from the node {smuNode}")
+        smuNode = 2
         # TODO: write self._query("*WDN?") to clear any left status and 
         # not crash the communication with the SMU
         # Extracted from the docs, the content of a buffer type object : 
         # buffer = {timestamps measurefunctions readings sourcevalues...}
         # range and units are retrievable as well as the timestamps
 
-        
-        
+
         src1a = [float(x) for x in self._query('printbuffer' +
               '(1, smua.nvbuffer1.n, smua.nvbuffer1.sourcevalues)').split(',')]
         i1a = [float(x) for x in self._query('printbuffer' +
@@ -209,12 +209,10 @@ class K2636():
         # With DELAY being the time step that you want, default to 1E-4
         
         # TODO: Four channel super sweep
-        self._write(f"self._write(f"{listSmuAName} ,{listSmuBName} = \{\},\{\}")
-")
+        self._write(f"{listSmuAName} ,{listSmuBName} = "+"{},{}")
         for i in range(len(listSmuA)):
-            self._write(f"{listSmuAName}[{i+1}],{listSmuBName}[{i+1}] = {listSmuA[i]},{listSmuB[i]}")
-        else :
-            self._write(f"{listSmuAName}[{i+1}],{listSmuBName}[{i+1}] = nil,nil") #end the list
+            self.inst.write(f"{listSmuAName}[{i+1}],{listSmuBName}[{i+1}] = {listSmuA[i]},{listSmuB[i]}")
+
 
 ########################################################################
 
@@ -232,8 +230,17 @@ if __name__ == '__main__':
     #keithley.inst.write("node[2].execute(\"main2()\") waitcomplete(0) print(\"DONE\")")
     keithley.inst.write("node[2].execute(main2.source) print(\"DONE\")")
     print(keithley.inst.read())
-    
-    keithley.runFunction("superSweep","-2,2,0.1,0.1")
+
+### test douple sweep
+    X2 = np.linspace(0,1,5)
+    X1 = np.zeros(5)
+
+    keithley.loadListTension(X1,X2,"X1","X2")
+    keithley.runFunction("doubleListSweep","X1,X2")
+
+### test simple sweep
+#    keithley.runFunction("superSweep","-2,2,0.1,0.1")
+
     nameFile = input("name the sample please DeviceId Sample Type of test run : ")
     keithley.SaveAcquisition(nameFile)
     keithley.closeConnection()
