@@ -234,5 +234,6 @@ if __name__ == '__main__':
     print(keithley.inst.read())
     
     keithley.runFunction("superSweep","-2,2,0.1,0.1")
-    keithley.SaveAcquisition("test")
+    nameFile = input("name the sample please DeviceId Sample Type of test run : ")
+    keithley.SaveAcquisition(nameFile)
     keithley.closeConnection()
