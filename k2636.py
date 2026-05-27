@@ -147,40 +147,40 @@ class K2636():
         # buffer = {timestamps measurefunctions readings sourcevalues...}
         # range and units are retrievable as well as the timestamps
 
-
-        src1a = [float(x) for x in self._query('printbuffer' +
-              '(1, smua.nvbuffer1.n, smua.nvbuffer1.sourcevalues)').split(',')]
-        i1a = [float(x) for x in self._query('printbuffer' +
-             '(1, smua.nvbuffer1.n, smua.nvbuffer1.readings)').split(',')]
-        src1b = [float(x) for x in self._query('printbuffer' +
-              '(1, smub.nvbuffer1.n, smub.nvbuffer1.sourcevalues)').split(',')]
-        i1b = [float(x) for x in self._query('printbuffer' +
-              '(1, smub.nvbuffer1.n, smub.nvbuffer1.readings)').split(',')]
-
-    
-        time.sleep(SANITY_WAIT)
-        
+        # transferring data from the second smu to the first
         self._write(f"node[{smuNode}].execute(\"bfremoteA = smua.nvbuffer1\")")
         time.sleep(SANITY_WAIT)
-
         self._write(f"bfremoteA = node[{smuNode}].getglobal(\"bfremoteA\")")
-        time.sleep(SANITY_WAIT)
-        src2a = [float(x) for x in self._query('printbuffer' +
-              '(1, bfremoteA.n, bfremoteA.sourcevalues)').split(',')]
-        i2a = [float(x) for x in self._query('printbuffer' +
-             '(1, bfremoteA.n, bfremoteA.readings)').split(',')]
-        self._write(f"bfremoteA = nil")
-
         time.sleep(SANITY_WAIT)
         self._write(f"node[{smuNode}].execute(\"bfremoteB = smub.nvbuffer1\")")
         time.sleep(SANITY_WAIT)
         self._write(f"bfremoteB = node[{smuNode}].getglobal(\"bfremoteB\")")
-        time.sleep(SANITY_WAIT)
-        src2b = [float(x) for x in self._query('printbuffer' +
-              '(1, bfremoteB.n, bfremoteB.sourcevalues)').split(',')]
-        i2b = [float(x) for x in self._query('printbuffer' +
-              '(1, bfremoteB.n, bfremoteB.readings)').split(',')]
 
+        bufferSize = int(float(keithley._query("smua.nvbuffer1.n"))) # size of the data
+        batchSize = 100 # number of value that the smu can send without crashing
+
+        partition = lambda i : f"{i*batchSize+1},{min(batchSize*(i+1),bufferSize)}"
+        
+        for i in range(bufferSize//batchsize + 1):
+            src1a += [float(x) for x in self._query('printbuffer(' +
+                  partition(i) +', smua.nvbuffer1.sourcevalues)').split(',')]
+            i1a   += [float(x) for x in self._query('printbuffer(' +
+                  partition(i) +', smua.nvbuffer1.readings)').split(',')]
+            src1b += [float(x) for x in self._query('printbuffer(' +
+                  partition(i) +', smub.nvbuffer1.sourcevalues)').split(',')]
+            i1b   += [float(x) for x in self._query('printbuffer(' +
+                  partition(i) +', smub.nvbuffer1.readings)').split(',')]
+            src2a += [float(x) for x in self._query('printbuffer(' +
+                  partition(i) +', bfremoteA.sourcevalues)').split(',')]
+            i2a   += [float(x) for x in self._query('printbuffer(' +
+                  partition(i) +', bfremoteA.readings)').split(',')]
+            src2b += [float(x) for x in self._query('printbuffer(' +
+                  partition(i) +', bfremoteB.sourcevalues)').split(',')]
+            i2b   += [float(x) for x in self._query('printbuffer(' +
+                  partition(i) +', bfremoteB.readings)').split(',')]
+    
+ 
+        self._write(f"bfremoteA = nil")
         self._write(f"bfremoteB = nil")
 
         df = pd.DataFrame({'SMU1 src A [V]': src1a,
@@ -232,14 +232,14 @@ if __name__ == '__main__':
     print(keithley.inst.read())
 
 ### test douple sweep
-    X2 = np.linspace(0,1,5)
-    X1 = np.zeros(5)
-
-    keithley.loadListTension(X1,X2,"X1","X2")
-    keithley.runFunction("doubleListSweep","X1,X2")
+    # X2 = np.linspace(0,1,5)
+    # X1 = np.zeros(5)
+# 
+#     keithley.loadListTension(X1,X2,"X1","X2")
+#     keithley.runFunction("doubleListSweep","X1,X2")
 
 ### test simple sweep
-#    keithley.runFunction("superSweep","-2,2,0.1,0.1")
+    keithley.runFunction("superSweep","-2,2,0.01,0.1")
 
     nameFile = input("name the sample please DeviceId Sample Type of test run : ")
     keithley.SaveAcquisition(nameFile)
